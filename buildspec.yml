@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 987042256667.dkr.ecr.us-east-1.amazonaws.com
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t devops-ecr-repo . 
+      - docker tag devops-ecr-repo:latest 987042256667.dkr.ecr.us-east-1.amazonaws.com/devops-ecr-repo:latest 
+  post_build:
+    commands:
+      - echo Pushing the Docker images...
+      - docker push 987042256667.dkr.ecr.us-east-1.amazonaws.com/devops-ecr-repo:latest 
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"flask-app","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json
