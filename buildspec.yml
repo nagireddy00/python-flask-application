@@ -5,21 +5,20 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws --version
-      - REPOSITORY_URI=987042256667.dkr.ecr.us-east-1.amazonaws.com/devops-ecr-repo
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 987042256667.dkr.ecr.us-east-1.amazonaws.com
-      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGION=$(aws configure get region)
+      - REPO_URI=$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/devops-ecr-repo
+      - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REPO_URI
   build:
     commands:
-      - echo Building the Docker image...
-      - docker build -t devops-ecr-repo . 
-      - docker tag devops-ecr-repo:latest 987042256667.dkr.ecr.us-east-1.amazonaws.com/devops-ecr-repo:latest 
+      - echo Build Docker image...
+      - docker build -t flaskapp .
+      - docker tag flaskapp:latest $REPO_URI:latest
   post_build:
     commands:
-      - echo Pushing the Docker images...
-      - docker push 987042256667.dkr.ecr.us-east-1.amazonaws.com/devops-ecr-repo:latest 
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
-      - printf '[{"name":"flask-app","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo Push Docker image...
+      - docker push $REPO_URI:latest
+      - printf '[{"name":"flaskapp","imageUri":"%s"}]' $REPO_URI:latest > imagedefinitions.json
 artifacts:
   files:
     - imagedefinitions.json
