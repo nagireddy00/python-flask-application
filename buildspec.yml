@@ -5,6 +5,7 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws --version
+      - ls -la 
       - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - REGION=us-east-1
       - REPO_URI=$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/devops-ecr-repo
